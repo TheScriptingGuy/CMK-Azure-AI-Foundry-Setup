@@ -238,17 +238,19 @@ try {
 } catch { }
 $global:LASTEXITCODE = 0
 if (-not [string]::IsNullOrWhiteSpace($saId)) {
-  $spClientId = (Get-Content $secretsPath | Where-Object { $_ -match '^ARM_CLIENT_ID=' }) -replace '^ARM_CLIENT_ID=', ''
-  $spOid = az ad sp show --id $spClientId --query id -o tsv --only-show-errors 2>$null
-  if (-not [string]::IsNullOrWhiteSpace($spOid)) {
-    az role assignment create `
-      --role 'Storage Blob Data Contributor' `
-      --assignee-object-id $spOid `
-      --assignee-principal-type ServicePrincipal `
-      --scope $saId `
-      --only-show-errors 1>$null 2>$null
-    $global:LASTEXITCODE = 0
-  }
+  try {
+    $spClientId = (Get-Content $secretsPath | Where-Object { $_ -match '^ARM_CLIENT_ID=' }) -replace '^ARM_CLIENT_ID=', ''
+    $spOid = az ad sp show --id $spClientId --query id -o tsv --only-show-errors 2>$null
+    if (-not [string]::IsNullOrWhiteSpace($spOid)) {
+      az role assignment create `
+        --role 'Storage Blob Data Contributor' `
+        --assignee-object-id $spOid `
+        --assignee-principal-type ServicePrincipal `
+        --scope $saId `
+        --only-show-errors 1>$null 2>$null
+    }
+  } catch { }
+  $global:LASTEXITCODE = 0
 }
 
 # --- 5. Deploy -----------------------------------------------------------
