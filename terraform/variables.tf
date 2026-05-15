@@ -51,15 +51,15 @@ variable "model_catalog" {
     model_format  = string
   }))
   default = {
-    # Microsoft-hosted models — standard Azure billing, no marketplace purchase needed.
-    # MAI-DS-R1 = Microsoft AI DeepSeek R1 (Microsoft-published, works on VS Enterprise).
-    "mai-ds-r1" = {
-      publisher     = "Microsoft"
-      offer         = "MAI-DS-R1"
+    # DeepSeek models — work on VS Enterprise (no marketplace purchase required).
+    # DeepSeek-R1-0528 is the latest stable reasoning model (May 2025 release).
+    "deepseek-r1-0528" = {
+      publisher     = "DeepSeek"
+      offer         = "DeepSeek-R1-0528"
       sku           = "GlobalStandard"
-      model_name    = "MAI-DS-R1"
+      model_name    = "DeepSeek-R1-0528"
       model_version = "1"
-      model_format  = "Microsoft"
+      model_format  = "DeepSeek"
     }
     "gpt-5.5" = {
       publisher     = "Microsoft"
@@ -110,7 +110,7 @@ EOT
   }))
   default = [
     {
-      model_key       = "mai-ds-r1"
+      model_key       = "deepseek-r1-0528"
       deployment_name = "deepseek-r1"
       capacity        = 1
     }
