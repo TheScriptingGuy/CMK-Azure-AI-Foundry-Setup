@@ -281,7 +281,12 @@ $actArgs = @(
 )
 if ($HostMode) { $actArgs += @('-P', 'ubuntu-latest=-self-hosted') }
 
+# act writes info messages to stderr; suspend Stop mode so NativeCommandError
+# records don't terminate the script before we can check $LASTEXITCODE.
+$ErrorActionPreference = 'Continue'
 & act @actArgs
-if ($LASTEXITCODE -ne 0) { throw "act deploy failed with exit code $LASTEXITCODE" }
+$actExitCode = $LASTEXITCODE
+$ErrorActionPreference = 'Stop'
+if ($actExitCode -ne 0) { throw "act deploy failed with exit code $actExitCode" }
 
 Write-Host '==> Done.' -ForegroundColor Green
