@@ -12,16 +12,13 @@
 #      convention (same as Azure OpenAI deployments). If Anthropic offers require
 #      publisher/offer/sku at the top of properties, swap the body accordingly.
 resource "azapi_resource" "deployment" {
-  type      = "Microsoft.CognitiveServices/accounts/deployments@2025-06-01"
+  type      = "Microsoft.CognitiveServices/accounts/deployments@2025-09-01"
   name      = var.deployment_name
   parent_id = var.account_id
 
-  # modelProviderData is absent from azapi's embedded 2025-06-01 schema.
-  # Using jsonencode() forces the raw JSON string through the provider
-  # without any schema-based field filtering.
-  schema_validation_enabled = false
-
-  body = jsonencode({
+  # modelProviderData was added to the schema in 2025-09-01; using this
+  # version ensures azapi passes the field through without filtering it.
+  body = {
     sku = {
       name     = var.model.sku
       capacity = var.capacity
@@ -38,7 +35,7 @@ resource "azapi_resource" "deployment" {
         countryCode      = var.model_provider_data.country_code
       }
     }
-  })
+  }
 
   tags = var.tags
 
