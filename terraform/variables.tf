@@ -51,7 +51,16 @@ variable "model_catalog" {
     model_format  = string
   }))
   default = {
-    # OpenAI models — standard Azure billing, no marketplace purchase needed.
+    # Microsoft-hosted models — standard Azure billing, no marketplace purchase needed.
+    # MAI-DS-R1 = Microsoft AI DeepSeek R1 (Microsoft-published, works on VS Enterprise).
+    "mai-ds-r1" = {
+      publisher     = "Microsoft"
+      offer         = "MAI-DS-R1"
+      sku           = "GlobalStandard"
+      model_name    = "MAI-DS-R1"
+      model_version = "1"
+      model_format  = "Microsoft"
+    }
     "gpt-5.5" = {
       publisher     = "Microsoft"
       offer         = "gpt-5.5"
@@ -101,8 +110,8 @@ EOT
   }))
   default = [
     {
-      model_key       = "gpt-5.5"
-      deployment_name = "gpt-5-5"
+      model_key       = "mai-ds-r1"
+      deployment_name = "deepseek-r1"
       capacity        = 1
     }
   ]
