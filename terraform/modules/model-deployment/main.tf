@@ -16,8 +16,12 @@ resource "azapi_resource" "deployment" {
   name      = var.deployment_name
   parent_id = var.account_id
 
-  # modelProviderData was added to the schema in 2025-09-01; using this
-  # version ensures azapi passes the field through without filtering it.
+  # modelProviderData is absent from azapi's embedded schema for all
+  # available API versions; schema_validation_enabled = false is required.
+  # The value is JSON-encoded as a string because azapi v2 filters unknown
+  # nested objects even with validation disabled.
+  schema_validation_enabled = false
+
   body = {
     sku = {
       name     = var.model.sku
@@ -29,11 +33,11 @@ resource "azapi_resource" "deployment" {
         name    = var.model.model_name
         version = var.model.model_version
       }
-      modelProviderData = {
+      modelProviderData = jsonencode({
         industry         = var.model_provider_data.industry
         organizationName = var.model_provider_data.organization_name
         countryCode      = var.model_provider_data.country_code
-      }
+      })
     }
   }
 
