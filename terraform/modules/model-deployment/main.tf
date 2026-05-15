@@ -16,12 +16,12 @@ resource "azapi_resource" "deployment" {
   name      = var.deployment_name
   parent_id = var.account_id
 
-  # modelProviderData is required by Anthropic MaaS but absent from the
-  # azapi provider's embedded 2025-06-01 schema; disable validation so
-  # the field passes through to the Azure REST API.
+  # modelProviderData is absent from azapi's embedded 2025-06-01 schema.
+  # Using jsonencode() forces the raw JSON string through the provider
+  # without any schema-based field filtering.
   schema_validation_enabled = false
 
-  body = {
+  body = jsonencode({
     sku = {
       name     = var.model.sku
       capacity = var.capacity
@@ -38,7 +38,7 @@ resource "azapi_resource" "deployment" {
         countryCode      = var.model_provider_data.country_code
       }
     }
-  }
+  })
 
   tags = var.tags
 
