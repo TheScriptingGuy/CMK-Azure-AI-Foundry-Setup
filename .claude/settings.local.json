@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:/Users/lindw08/source/CMK-Azure-AI-Foundry-Setup\" status)",
+      "Bash(git -C \"C:/Users/lindw08/source/CMK-Azure-AI-Foundry-Setup\" log --oneline -5)",
+      "Bash(terraform version *)",
+      "PowerShell(terraform version *)",
+      "PowerShell(Test-Path *)",
+      "Bash(ls scripts *)",
+      "Bash(terraform fmt *)",
+      "Bash(terraform validate *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\lindw08\\source\\CMK-Azure-AI-Foundry-Setup"
+    ]
+  }
+}

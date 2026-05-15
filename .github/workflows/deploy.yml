@@ -1,0 +1,145 @@
+name: Terraform Deploy
+
+# Plans / applies / destroys the main Foundry + CMK config.
+# Trigger manually from GitHub or locally with:
+#   act workflow_dispatch -W .github/workflows/deploy.yml \
+#     --secret-file .secrets \
+#     --input subscription_id=<sub> \
+#     --input action=plan \
+#     --input backend_resource_group=<rg-from-bootstrap> \
+#     --input backend_storage_account=<sa-from-bootstrap>
+#
+# Auth uses an Azure AD service principal. The same SP becomes the Key Vault admin
+# (its object ID is resolved from ARM_CLIENT_ID at run time), so it can create the
+# CMK key.
+#
+# Required secrets: ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID.
+
+on:
+  workflow_dispatch:
+    inputs:
+      subscription_id:
+        description: "Azure subscription ID to deploy into"
+        required: true
+        type: string
+      action:
+        description: "Terraform action to perform"
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+        default: plan
+      backend_resource_group:
+        description: "Resource group of the tfstate storage account (from bootstrap output)"
+        required: true
+        type: string
+      backend_storage_account:
+        description: "Name of the tfstate storage account (from bootstrap output)"
+        required: true
+        type: string
+      backend_container:
+        description: "Name of the tfstate container"
+        required: false
+        type: string
+        default: tfstate
+      location:
+        description: "Azure region"
+        required: false
+        type: string
+        default: swedencentral
+      name_prefix:
+        description: "Resource name prefix"
+        required: false
+        type: string
+        default: cmkfoundry
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: terraform ${{ inputs.action }}
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ inputs.subscription_id }}
+      ARM_USE_AZUREAD: "true"
+      TF_IN_AUTOMATION: "1"
+      TF_INPUT: "0"
+      TF_VAR_subscription_id: ${{ inputs.subscription_id }}
+      TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+      TF_VAR_location: ${{ inputs.location }}
+      TF_VAR_name_prefix: ${{ inputs.name_prefix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Azure login (CLI, for SP object_id lookup)
+        run: |
+          az login --service-principal \
+            --username "$ARM_CLIENT_ID" \
+            --password "$ARM_CLIENT_SECRET" \
+            --tenant "$ARM_TENANT_ID" >/dev/null
+
+      - name: Resolve SP object_id for Key Vault admin
+        run: |
+          OBJECT_ID=$(az ad sp show --id "$ARM_CLIENT_ID" --query id -o tsv)
+          if [ -z "$OBJECT_ID" ]; then
+            echo "Failed to resolve service principal object_id" >&2
+            exit 1
+          fi
+          echo "TF_VAR_key_vault_admin_object_ids=[\"$OBJECT_ID\"]" >> "$GITHUB_ENV"
+
+      - name: terraform init
+        run: |
+          terraform init -no-color \
+            -backend-config="resource_group_name=${{ inputs.backend_resource_group }}" \
+            -backend-config="storage_account_name=${{ inputs.backend_storage_account }}" \
+            -backend-config="container_name=${{ inputs.backend_container }}"
+
+      - name: terraform validate
+        run: terraform validate -no-color
+
+      - name: terraform plan
+        if: inputs.action == 'plan'
+        run: terraform plan -no-color
+
+      - name: terraform apply
+        if: inputs.action == 'apply'
+        run: terraform apply -no-color -auto-approve
+
+      - name: terraform destroy
+        if: inputs.action == 'destroy'
+        run: terraform destroy -no-color -auto-approve
+
+      - name: Summarize outputs
+        if: inputs.action == 'apply'
+        run: |
+          {
+            echo "## Apply succeeded"
+            echo ""
+            echo "Retrieve the OpenCode env block with:"
+            echo ""
+            echo '```bash'
+            echo 'terraform -chdir=terraform output -raw opencode_env'
+            echo '```'
+            echo ""
+            echo "(Output is marked sensitive, so it does not print here.)"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,4 @@
+# Default flags for `act` (https://github.com/nektos/act).
+# A medium image is required: the workflows use the Azure CLI and the hashicorp/setup-terraform action.
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+--container-architecture linux/amd64

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($tokens = $null; $errors = $null; [System.Management.Automation.Language.Parser]::ParseFile\\('scripts\\\\deploy.ps1', [ref]$tokens, [ref]$errors\\) | Out-Null; if \\($errors\\) { $errors | ForEach-Object { Write-Host $_.Message } } else { Write-Host \"OK: no parse errors\" })"
+    ]
+  }
+}

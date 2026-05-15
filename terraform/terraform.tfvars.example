@@ -1,0 +1,35 @@
+subscription_id = "00000000-0000-0000-0000-000000000000"
+tenant_id       = "00000000-0000-0000-0000-000000000000"
+
+# Anthropic MaaS is currently most reliably available in eastus2 and swedencentral.
+location    = "swedencentral"
+name_prefix = "cmkfoundry"
+
+# Object IDs that should get Key Vault Administrator on the CMK vault.
+# At minimum, include the principal running `terraform apply` so it can create the RSA key.
+# Find your own with: az ad signed-in-user show --query id -o tsv
+key_vault_admin_object_ids = [
+  # "11111111-2222-3333-4444-555555555555",
+]
+
+# Deploy a single model by default. Add more entries to deploy multiple.
+# The FIRST entry's endpoint + key feed the opencode_env output.
+deployments = [
+  {
+    model_key       = "claude-opus-4-7"
+    deployment_name = "opus"
+    capacity        = 1
+  },
+]
+
+# Data-plane RBAC on the AIServices account. Add yourself here to call inference
+# via AAD (azure-identity) instead of the static account key — required by
+# scripts/chat.py. Find your own object ID with:
+#   az ad signed-in-user show --query id -o tsv
+ai_foundry_role_assignments = [
+  # {
+  #   principal_id   = "11111111-2222-3333-4444-555555555555"
+  #   role           = "Cognitive Services User"  # optional, this is the default
+  #   principal_type = "User"                     # optional, recommended for new SPNs
+  # },
+]

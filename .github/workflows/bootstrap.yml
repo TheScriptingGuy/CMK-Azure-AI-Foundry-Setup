@@ -1,0 +1,105 @@
+name: Terraform Bootstrap
+
+# Runs the one-time bootstrap that creates the remote state storage account.
+# Trigger this manually from GitHub or locally with:
+#   act workflow_dispatch -W .github/workflows/bootstrap.yml \
+#     --secret-file .secrets \
+#     --input subscription_id=<sub>
+#
+# Auth uses an Azure AD service principal with Contributor on the target subscription.
+# Required secrets: ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID.
+
+on:
+  workflow_dispatch:
+    inputs:
+      subscription_id:
+        description: "Azure subscription ID to deploy into"
+        required: true
+        type: string
+      location:
+        description: "Azure region"
+        required: false
+        type: string
+        default: swedencentral
+      name_prefix:
+        description: "Resource name prefix (3-11 lowercase alphanumeric)"
+        required: false
+        type: string
+        default: cmkfoundry
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Provision remote state account
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform/bootstrap
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ inputs.subscription_id }}
+      TF_IN_AUTOMATION: "1"
+      TF_INPUT: "0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: terraform init
+        run: terraform init -no-color
+
+      - name: terraform validate
+        run: terraform validate -no-color
+
+      - name: terraform plan
+        run: |
+          terraform plan -no-color -out=tfplan \
+            -var "subscription_id=${{ inputs.subscription_id }}" \
+            -var "location=${{ inputs.location }}" \
+            -var "name_prefix=${{ inputs.name_prefix }}"
+
+      - name: terraform apply
+        run: terraform apply -no-color -auto-approve tfplan
+
+      - name: Emit backend config
+        id: backend
+        run: |
+          {
+            echo "## Backend configuration"
+            echo ""
+            echo "Paste the block below into \`terraform/backend.tf\` (replace the commented placeholder)."
+            echo ""
+            echo '```hcl'
+            terraform output -raw backend_config
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          terraform output -raw backend_config > backend_config.hcl
+          {
+            echo "resource_group_name=$(terraform output -raw resource_group_name)"
+            echo "storage_account_name=$(terraform output -raw storage_account_name)"
+            echo "container_name=$(terraform output -raw container_name)"
+          } > backend_config.env
+
+      - name: Upload backend config
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-config
+          path: |
+            terraform/bootstrap/backend_config.hcl
+            terraform/bootstrap/backend_config.env
+          if-no-files-found: error
+          retention-days: 30
