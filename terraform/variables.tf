@@ -94,18 +94,11 @@ EOT
     deployment_name = string
     capacity        = optional(number, 1)
   }))
-  default = [
-    {
-      model_key       = "claude-opus-4-7"
-      deployment_name = "opus"
-      capacity        = 1
-    }
-  ]
-
-  validation {
-    condition     = length(var.deployments) >= 1
-    error_message = "At least one deployment is required."
-  }
+  # NOTE: Anthropic MaaS model deployments require an Azure subscription with
+  # a valid payment instrument (Pay-As-You-Go or EA). Visual Studio Enterprise
+  # (MSDN) subscriptions cannot purchase marketplace models. Set this variable
+  # to add model deployments once a billing-enabled subscription is in use.
+  default = []
 }
 
 variable "key_vault_admin_object_ids" {
