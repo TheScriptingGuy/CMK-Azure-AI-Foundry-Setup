@@ -44,6 +44,16 @@ on:
         required: false
         type: string
         default: tfstate
+      sp_object_id:
+        description: "Object ID of the deploying service principal (used as Key Vault admin). Resolved from ARM_CLIENT_ID when omitted."
+        required: false
+        type: string
+        default: ""
+      user_object_id:
+        description: "Object ID of the personal user to grant Key Vault Administrator and Cognitive Services User (optional)"
+        required: false
+        type: string
+        default: ""
       location:
         description: "Azure region"
         required: false
@@ -91,21 +101,23 @@ jobs:
           terraform_version: 1.9.8
           terraform_wrapper: false
 
-      - name: Azure login (CLI, for SP object_id lookup)
-        run: |
-          az login --service-principal \
-            --username "$ARM_CLIENT_ID" \
-            --password "$ARM_CLIENT_SECRET" \
-            --tenant "$ARM_TENANT_ID" >/dev/null
-
       - name: Resolve SP object_id for Key Vault admin
         run: |
-          OBJECT_ID=$(az ad sp show --id "$ARM_CLIENT_ID" --query id -o tsv)
+          OBJECT_ID="${{ inputs.sp_object_id }}"
           if [ -z "$OBJECT_ID" ]; then
-            echo "Failed to resolve service principal object_id" >&2
+            OBJECT_ID=$(az ad sp show --id "$ARM_CLIENT_ID" --query id -o tsv 2>/dev/null || true)
+          fi
+          if [ -z "$OBJECT_ID" ]; then
+            echo "Could not resolve SP object_id. Pass sp_object_id as a workflow input." >&2
             exit 1
           fi
-          echo "TF_VAR_key_vault_admin_object_ids=[\"$OBJECT_ID\"]" >> "$GITHUB_ENV"
+          USER_OID="${{ inputs.user_object_id }}"
+          if [ -n "$USER_OID" ]; then
+            echo "TF_VAR_key_vault_admin_object_ids=[\"$OBJECT_ID\",\"$USER_OID\"]" >> "$GITHUB_ENV"
+            echo "TF_VAR_ai_foundry_role_assignments=[{principal_id=\"$USER_OID\",role=\"Cognitive Services User\",principal_type=\"User\"}]" >> "$GITHUB_ENV"
+          else
+            echo "TF_VAR_key_vault_admin_object_ids=[\"$OBJECT_ID\"]" >> "$GITHUB_ENV"
+          fi
 
       - name: terraform init
         run: |

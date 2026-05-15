@@ -12,7 +12,7 @@
 #      convention (same as Azure OpenAI deployments). If Anthropic offers require
 #      publisher/offer/sku at the top of properties, swap the body accordingly.
 resource "azapi_resource" "deployment" {
-  type      = "Microsoft.CognitiveServices/accounts/deployments@2024-10-01"
+  type      = "Microsoft.CognitiveServices/accounts/deployments@2025-06-01"
   name      = var.deployment_name
   parent_id = var.account_id
 
@@ -27,7 +27,6 @@ resource "azapi_resource" "deployment" {
         name    = var.model.model_name
         version = var.model.model_version
       }
-      raiPolicyName = "Microsoft.DefaultV2" # TODO(verify): RAI policies may not apply to Anthropic; remove if API rejects it.
     }
   }
 
@@ -36,12 +35,6 @@ resource "azapi_resource" "deployment" {
   response_export_values = ["properties.provisioningState", "properties.model"]
 }
 
-# Pull the account's primary key so we can hand it back to the caller as the API key for OpenCode.
-# AIServices keys are account-level; one key serves all deployments under the account.
-data "azurerm_cognitive_account" "parent" {
-  name                = var.account_name
-  resource_group_name = regex("/resourceGroups/([^/]+)/", var.account_id)[0]
-}
 
 # Uncomment if the deployment call complains about a missing marketplace subscription.
 # resource "azapi_resource" "marketplace_subscription" {

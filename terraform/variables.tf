@@ -58,16 +58,16 @@ EOT
   default = {
     "claude-opus-4-7" = {
       publisher     = "Anthropic"
-      offer         = "claude-opus-4-7" # TODO(verify)
-      sku           = "Global-Standard" # TODO(verify)
+      offer         = "claude-opus-4-7"
+      sku           = "GlobalStandard"
       model_name    = "claude-opus-4-7"
-      model_version = "1"        # TODO(verify)
-      model_format  = "Anthropic" # TODO(verify): may be "Microsoft.Anthropic" on some API versions
+      model_version = "1"
+      model_format  = "Anthropic"
     }
     "claude-opus-4-6" = {
       publisher     = "Anthropic"
-      offer         = "claude-opus-4-6" # TODO(verify)
-      sku           = "Global-Standard"
+      offer         = "claude-opus-4-6"
+      sku           = "GlobalStandard"
       model_name    = "claude-opus-4-6"
       model_version = "1"
       model_format  = "Anthropic"
@@ -75,7 +75,7 @@ EOT
     "claude-sonnet-4-6" = {
       publisher     = "Anthropic"
       offer         = "claude-sonnet-4-6"
-      sku           = "Global-Standard"
+      sku           = "GlobalStandard"
       model_name    = "claude-sonnet-4-6"
       model_version = "1"
       model_format  = "Anthropic"
