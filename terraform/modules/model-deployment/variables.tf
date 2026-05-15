@@ -36,6 +36,21 @@ variable "model" {
   })
 }
 
+variable "primary_key" {
+  description = "Primary access key of the parent AIServices account."
+  type        = string
+  sensitive   = true
+}
+
+variable "model_provider_data" {
+  description = "Organization data required by Anthropic MaaS deployments (industry, organizationName, countryCode)."
+  type = object({
+    organization_name = string
+    industry          = string
+    country_code      = string
+  })
+}
+
 variable "tags" {
   description = "Tags."
   type        = map(string)

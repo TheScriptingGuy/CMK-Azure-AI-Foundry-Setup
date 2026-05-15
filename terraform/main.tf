@@ -55,8 +55,9 @@ module "model_deployment" {
   primary_key      = module.ai_foundry.account_primary_key
   deployment_name  = each.value.deployment_name
   capacity         = each.value.capacity
-  model            = var.model_catalog[each.value.model_key]
-  tags             = var.tags
+  model               = var.model_catalog[each.value.model_key]
+  model_provider_data = var.anthropic_model_provider_data
+  tags                = var.tags
 }
 
 module "ai_foundry_role_assignments" {

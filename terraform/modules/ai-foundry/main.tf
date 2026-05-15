@@ -26,9 +26,19 @@ resource "azurerm_cognitive_account" "this" {
   tags = var.tags
 }
 
-# AI Foundry project under the AIServices account.
-# TODO(verify): azurerm_ai_services_project may have landed in a recent provider version — prefer it over azapi if available.
-# TODO(verify): API version (2024-10-01 was the GA version at the time of writing; check `az provider show -n Microsoft.CognitiveServices --query "resourceTypes[?resourceType=='accounts/projects'].apiVersions"`).
+# Projects require allowProjectManagement=true on the account.
+# azurerm_cognitive_account does not expose this property, so patch it via azapi.
+resource "azapi_update_resource" "allow_project_management" {
+  type        = "Microsoft.CognitiveServices/accounts@2025-06-01"
+  resource_id = azurerm_cognitive_account.this.id
+
+  body = {
+    properties = {
+      allowProjectManagement = true
+    }
+  }
+}
+
 resource "azapi_resource" "project" {
   type      = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
   name      = var.project_name
@@ -50,4 +60,6 @@ resource "azapi_resource" "project" {
   tags = var.tags
 
   response_export_values = ["properties.endpoints", "identity"]
+
+  depends_on = [azapi_update_resource.allow_project_management]
 }

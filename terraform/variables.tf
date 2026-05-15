@@ -118,6 +118,20 @@ EOT
   default = []
 }
 
+variable "anthropic_model_provider_data" {
+  description = "Organization data required by Anthropic MaaS model deployments. Override to match your organisation."
+  type = object({
+    organization_name = string
+    industry          = string
+    country_code      = string
+  })
+  default = {
+    organization_name = "Rubicon"
+    industry          = "Technology"
+    country_code      = "NL"
+  }
+}
+
 variable "ai_foundry_role_assignments" {
   description = <<EOT
 Data-plane role assignments on the AIServices account. Use this to grant

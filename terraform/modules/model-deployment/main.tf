@@ -27,6 +27,11 @@ resource "azapi_resource" "deployment" {
         name    = var.model.model_name
         version = var.model.model_version
       }
+      modelProviderData = {
+        industry         = var.model_provider_data.industry
+        organizationName = var.model_provider_data.organization_name
+        countryCode      = var.model_provider_data.country_code
+      }
     }
   }
 
