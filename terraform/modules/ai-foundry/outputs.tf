@@ -1,21 +1,21 @@
 output "account_id" {
   description = "Resource ID of the AIServices account."
-  value       = azurerm_cognitive_account.this.id
+  value       = azapi_resource.account.id
 }
 
 output "account_name" {
   description = "Name of the AIServices account."
-  value       = azurerm_cognitive_account.this.name
+  value       = azapi_resource.account.name
 }
 
 output "account_endpoint" {
-  description = "Inference endpoint of the AIServices account (e.g. https://<name>.services.ai.azure.com/)."
-  value       = azurerm_cognitive_account.this.endpoint
+  description = "Inference endpoint of the AIServices account."
+  value       = azapi_resource.account.output.properties.endpoint
 }
 
 output "account_primary_key" {
   description = "Primary key for the AIServices account."
-  value       = azurerm_cognitive_account.this.primary_access_key
+  value       = data.azapi_resource_action.account_keys.output.key1
   sensitive   = true
 }
 
