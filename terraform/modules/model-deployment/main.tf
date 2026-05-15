@@ -27,18 +27,22 @@ resource "azapi_resource" "deployment" {
       name     = var.model.sku
       capacity = var.capacity
     }
-    properties = {
-      model = {
-        format  = var.model.model_format
-        name    = var.model.model_name
-        version = var.model.model_version
-      }
-      modelProviderData = {
-        industry         = var.model_provider_data.industry
-        organizationName = var.model_provider_data.organization_name
-        countryCode      = var.model_provider_data.country_code
-      }
-    }
+    properties = merge(
+      {
+        model = {
+          format  = var.model.model_format
+          name    = var.model.model_name
+          version = var.model.model_version
+        }
+      },
+      var.model_provider_data != null ? {
+        modelProviderData = {
+          industry         = var.model_provider_data.industry
+          organizationName = var.model_provider_data.organization_name
+          countryCode      = var.model_provider_data.country_code
+        }
+      } : {}
+    )
   }
 
   tags = var.tags

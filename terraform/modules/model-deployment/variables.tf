@@ -43,12 +43,13 @@ variable "primary_key" {
 }
 
 variable "model_provider_data" {
-  description = "Organization data required by Anthropic MaaS deployments (industry, organizationName, countryCode)."
+  description = "Organization data required by Anthropic MaaS deployments. Null for OpenAI models."
   type = object({
     organization_name = string
     industry          = string
     country_code      = string
   })
+  default = null
 }
 
 variable "tags" {

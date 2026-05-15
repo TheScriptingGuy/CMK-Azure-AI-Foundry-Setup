@@ -41,12 +41,7 @@ variable "tags" {
 }
 
 variable "model_catalog" {
-  description = <<EOT
-Static catalog of supported Anthropic MaaS models on Azure AI Foundry.
-Add or update entries here as Anthropic publishes new offers to the Azure Marketplace.
-TODO(verify): exact publisher/offer/sku/model_version strings come from the portal Model Catalog
-              or `az rest --method get --uri ".../providers/Microsoft.CognitiveServices/locations/<region>/models?api-version=2024-10-01"`.
-EOT
+  description = "Catalog of models available for deployment. OpenAI-format models work on VS Enterprise subscriptions; Anthropic models require a subscription with a payment instrument."
   type = map(object({
     publisher     = string
     offer         = string
@@ -56,6 +51,16 @@ EOT
     model_format  = string
   }))
   default = {
+    # OpenAI models — standard Azure billing, no marketplace purchase needed.
+    "gpt-5.5" = {
+      publisher     = "Microsoft"
+      offer         = "gpt-5.5"
+      sku           = "GlobalStandard"
+      model_name    = "gpt-5.5"
+      model_version = "2026-04-24"
+      model_format  = "OpenAI"
+    }
+    # Anthropic models — require Azure Marketplace purchase (payment instrument needed).
     "claude-opus-4-7" = {
       publisher     = "Anthropic"
       offer         = "claude-opus-4-7"
@@ -94,11 +99,13 @@ EOT
     deployment_name = string
     capacity        = optional(number, 1)
   }))
-  # NOTE: Anthropic MaaS model deployments require an Azure subscription with
-  # a valid payment instrument (Pay-As-You-Go or EA). Visual Studio Enterprise
-  # (MSDN) subscriptions cannot purchase marketplace models. Set this variable
-  # to add model deployments once a billing-enabled subscription is in use.
-  default = []
+  default = [
+    {
+      model_key       = "gpt-5.5"
+      deployment_name = "gpt-5-5"
+      capacity        = 1
+    }
+  ]
 }
 
 variable "key_vault_admin_object_ids" {
@@ -112,17 +119,13 @@ EOT
 }
 
 variable "anthropic_model_provider_data" {
-  description = "Organization data required by Anthropic MaaS model deployments. Override to match your organisation."
+  description = "Organization data required by Anthropic MaaS model deployments. Leave null for OpenAI models."
   type = object({
     organization_name = string
     industry          = string
     country_code      = string
   })
-  default = {
-    organization_name = "Rubicon"
-    industry          = "Technology"
-    country_code      = "NL"
-  }
+  default = null
 }
 
 variable "ai_foundry_role_assignments" {
