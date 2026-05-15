@@ -12,6 +12,7 @@ resource "azurerm_cognitive_account" "this" {
   public_network_access_enabled = true
   local_auth_enabled            = true # API keys for the MaaS endpoint
   custom_subdomain_name         = var.name
+  allow_project_management      = true
 
   identity {
     type         = "UserAssigned"
@@ -24,19 +25,6 @@ resource "azurerm_cognitive_account" "this" {
   }
 
   tags = var.tags
-}
-
-# Projects require allowProjectManagement=true on the account.
-# azurerm_cognitive_account does not expose this property, so patch it via azapi.
-resource "azapi_update_resource" "allow_project_management" {
-  type        = "Microsoft.CognitiveServices/accounts@2025-06-01"
-  resource_id = azurerm_cognitive_account.this.id
-
-  body = {
-    properties = {
-      allowProjectManagement = true
-    }
-  }
 }
 
 resource "azapi_resource" "project" {
@@ -61,5 +49,4 @@ resource "azapi_resource" "project" {
 
   response_export_values = ["properties.endpoints", "identity"]
 
-  depends_on = [azapi_update_resource.allow_project_management]
 }
