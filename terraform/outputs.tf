@@ -39,16 +39,11 @@ output "deployments" {
 }
 
 output "opencode_env" {
-  description = <<EOT
-Paste-ready shell snippet that points OpenCode at the first deployment.
-Only populated when var.deployments is non-empty.
-Retrieve with: terraform output -raw opencode_env
-EOT
-  sensitive = true
-  value = length(var.deployments) > 0 ? <<EOT
-export ANTHROPIC_API_KEY=${module.model_deployment[var.deployments[0].deployment_name].primary_key}
-export ANTHROPIC_BASE_URL=${module.model_deployment[var.deployments[0].deployment_name].endpoint_url}
-export ANTHROPIC_MODEL=${module.model_deployment[var.deployments[0].deployment_name].model_name}
-EOT
-  : "# No deployments configured. Set var.deployments to add a model deployment."
+  description = "Paste-ready shell snippet pointing OpenCode at the first deployment. Only populated when var.deployments is non-empty. Retrieve with: terraform output -raw opencode_env"
+  sensitive   = true
+  value = length(var.deployments) > 0 ? join("\n", [
+    "export ANTHROPIC_API_KEY=${module.model_deployment[var.deployments[0].deployment_name].primary_key}",
+    "export ANTHROPIC_BASE_URL=${module.model_deployment[var.deployments[0].deployment_name].endpoint_url}",
+    "export ANTHROPIC_MODEL=${module.model_deployment[var.deployments[0].deployment_name].model_name}",
+  ]) : "# No deployments configured. Set var.deployments to add a model deployment."
 }
