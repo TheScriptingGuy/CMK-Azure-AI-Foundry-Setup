@@ -28,13 +28,8 @@ variable "cmk_identity_client_id" {
   type        = string
 }
 
-variable "cmk_key_vault_uri" {
-  description = "Vault URI of the Key Vault (e.g. https://<name>.vault.azure.net/)."
-  type        = string
-}
-
-variable "cmk_key_name" {
-  description = "Name of the CMK key in the vault."
+variable "cmk_key_id" {
+  description = "Versioned ID of the CMK key (azurerm_key_vault_key.id). The Cognitive Services API requires a versioned key URI."
   type        = string
 }
 

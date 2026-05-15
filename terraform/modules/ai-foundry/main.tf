@@ -19,7 +19,7 @@ resource "azurerm_cognitive_account" "this" {
   }
 
   customer_managed_key {
-    key_vault_key_id   = "${trimsuffix(var.cmk_key_vault_uri, "/")}/keys/${var.cmk_key_name}"
+    key_vault_key_id   = var.cmk_key_id
     identity_client_id = var.cmk_identity_client_id
   }
 
@@ -30,7 +30,7 @@ resource "azurerm_cognitive_account" "this" {
 # TODO(verify): azurerm_ai_services_project may have landed in a recent provider version — prefer it over azapi if available.
 # TODO(verify): API version (2024-10-01 was the GA version at the time of writing; check `az provider show -n Microsoft.CognitiveServices --query "resourceTypes[?resourceType=='accounts/projects'].apiVersions"`).
 resource "azapi_resource" "project" {
-  type      = "Microsoft.CognitiveServices/accounts/projects@2024-10-01"
+  type      = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
   name      = var.project_name
   parent_id = azurerm_cognitive_account.this.id
   location  = var.location

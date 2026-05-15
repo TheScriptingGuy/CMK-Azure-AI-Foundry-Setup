@@ -35,8 +35,7 @@ module "ai_foundry" {
   project_name           = var.project_name
   cmk_identity_id        = module.identity.id
   cmk_identity_client_id = module.identity.client_id
-  cmk_key_vault_uri      = module.keyvault.vault_uri
-  cmk_key_name           = module.keyvault.key_name
+  cmk_key_id             = module.keyvault.key_id
   tags                   = var.tags
 
   # The KV role assignment for the UAMI must exist before the account creates,
@@ -53,6 +52,7 @@ module "model_deployment" {
   account_id       = module.ai_foundry.account_id
   account_name     = module.ai_foundry.account_name
   account_endpoint = module.ai_foundry.account_endpoint
+  primary_key      = module.ai_foundry.account_primary_key
   deployment_name  = each.value.deployment_name
   capacity         = each.value.capacity
   model            = var.model_catalog[each.value.model_key]
