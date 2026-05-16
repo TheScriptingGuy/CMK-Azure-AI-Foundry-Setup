@@ -66,7 +66,7 @@ module "model_deployment" {
 # set (which would silently disable web search for all accounts in the sub).
 # Calling /unregister when the flag is absent is a no-op.
 resource "azapi_resource_action" "enable_web_search" {
-  type        = "Microsoft.Features/providers/features@2021-07-01"
+  type        = "Microsoft.CognitiveServices/features@2021-07-01"
   resource_id = "/subscriptions/${var.subscription_id}/providers/Microsoft.Features/providers/Microsoft.CognitiveServices/features/OpenAI.BlockedTools.web_search"
   action      = "unregister"
   method      = "POST"
