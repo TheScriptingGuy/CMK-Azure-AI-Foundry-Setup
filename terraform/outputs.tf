@@ -18,6 +18,11 @@ output "project_name" {
   value       = module.ai_foundry.project_name
 }
 
+output "project_endpoint" {
+  description = "Foundry Agent Service endpoint for this project. Use with the azure-ai-projects SDK to create agents with tools (e.g. WebSearchTool). Format: https://<account>.services.ai.azure.com/api/projects/<project>"
+  value       = "${trimsuffix(module.ai_foundry.account_endpoint, "/")}/api/projects/${module.ai_foundry.project_name}"
+}
+
 output "key_vault_uri" {
   description = "URI of the Key Vault that holds the CMK."
   value       = module.keyvault.vault_uri
@@ -47,6 +52,7 @@ output "opencode_env" {
       "export AZURE_OPENAI_ENDPOINT=${module.model_deployment[var.deployments[0].deployment_name].endpoint_url}",
       "export AZURE_OPENAI_DEPLOYMENT=${var.deployments[0].deployment_name}",
       "export OPENAI_API_VERSION=2024-10-21",
+      "export AZURE_FOUNDRY_PROJECT_ENDPOINT=${trimsuffix(module.ai_foundry.account_endpoint, "/")}/api/projects/${module.ai_foundry.project_name}",
     ]) : join("\n", [
       "export ANTHROPIC_API_KEY=${module.model_deployment[var.deployments[0].deployment_name].primary_key}",
       "export ANTHROPIC_BASE_URL=${module.model_deployment[var.deployments[0].deployment_name].endpoint_url}",

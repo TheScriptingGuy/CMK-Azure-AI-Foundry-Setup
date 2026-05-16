@@ -61,6 +61,14 @@ variable "model_catalog" {
       model_version = "1"
       model_format  = "DeepSeek"
     }
+    "gpt-4o" = {
+      publisher     = "Microsoft"
+      offer         = "gpt-4o"
+      sku           = "GlobalStandard"
+      model_name    = "gpt-4o"
+      model_version = "2024-11-20"
+      model_format  = "OpenAI"
+    }
     "gpt-5.5" = {
       publisher     = "Microsoft"
       offer         = "gpt-5.5"
@@ -110,8 +118,8 @@ EOT
   }))
   default = [
     {
-      model_key       = "gpt-5.5"
-      deployment_name = "gpt-5-5"
+      model_key       = "gpt-4o"
+      deployment_name = "gpt-4o"
       capacity        = 1
     }
   ]

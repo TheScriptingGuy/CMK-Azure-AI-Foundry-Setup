@@ -60,6 +60,19 @@ module "model_deployment" {
   tags                = var.tags
 }
 
+# Ensure web search is not blocked at the subscription level.
+# The Web Search tool in Foundry Agent Service is enabled by default; this
+# action guards against the OpenAI.BlockedTools.web_search feature flag being
+# set (which would silently disable web search for all accounts in the sub).
+# Calling /unregister when the flag is absent is a no-op.
+resource "azapi_resource_action" "enable_web_search" {
+  type        = "Microsoft.Features/providers/features@2021-07-01"
+  resource_id = "/subscriptions/${var.subscription_id}/providers/Microsoft.Features/providers/Microsoft.CognitiveServices/features/OpenAI.BlockedTools.web_search"
+  action      = "unregister"
+  method      = "POST"
+  body        = {}
+}
+
 module "ai_foundry_role_assignments" {
   source = "./modules/role-assignments"
 
