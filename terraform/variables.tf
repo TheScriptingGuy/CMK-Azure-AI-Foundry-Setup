@@ -110,8 +110,8 @@ EOT
   }))
   default = [
     {
-      model_key       = "deepseek-r1-0528"
-      deployment_name = "deepseek-r1"
+      model_key       = "gpt-5.5"
+      deployment_name = "gpt-5-5"
       capacity        = 1
     }
   ]

@@ -9,16 +9,17 @@ output "deployment_name" {
 }
 
 output "endpoint_url" {
-  description = <<EOT
-Base URL for the Anthropic-compatible API on this deployment.
-TODO(verify): the path suffix may differ — confirm via `az cognitiveservices account deployment show` after first apply.
-EOT
-  value       = "${trimsuffix(var.account_endpoint, "/")}/anthropic"
+  description = "Base URL for API calls on this deployment (/openai for OpenAI-format models, /anthropic for Anthropic MaaS)."
+  value = var.model.model_format == "OpenAI" ? (
+    "${trimsuffix(var.account_endpoint, "/")}/openai"
+  ) : (
+    "${trimsuffix(var.account_endpoint, "/")}/anthropic"
+  )
 }
 
 output "primary_key" {
   description = "Account primary key. Use as ANTHROPIC_API_KEY."
-  value       = data.azurerm_cognitive_account.parent.primary_access_key
+  value       = var.primary_key
   sensitive   = true
 }
 
