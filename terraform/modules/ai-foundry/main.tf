@@ -48,6 +48,11 @@ resource "azapi_resource" "account" {
   tags = var.tags
 
   response_export_values = ["properties.endpoint", "properties.endpoints"]
+
+  timeouts {
+    create = "60m"
+    update = "60m"
+  }
 }
 
 data "azapi_resource_action" "account_keys" {

@@ -85,3 +85,4 @@ module "ai_foundry_role_assignments" {
     }
   ]
 }
+

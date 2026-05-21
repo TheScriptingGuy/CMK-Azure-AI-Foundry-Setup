@@ -1,11 +1,7 @@
-resource "random_string" "suffix" {
-  length  = 6
-  upper   = false
-  special = false
-}
-
 locals {
-  suffix               = random_string.suffix.result
+  # Deterministic suffix: first 8 hex chars of the subscription ID (hyphens removed).
+  # Same subscription + name_prefix always produces the same storage account name.
+  suffix               = substr(replace(var.subscription_id, "-", ""), 0, 8)
   resource_group_name  = "rg-${var.name_prefix}-tfstate-${local.suffix}"
   storage_account_name = substr("st${var.name_prefix}tf${local.suffix}", 0, 24)
   container_name       = "tfstate"

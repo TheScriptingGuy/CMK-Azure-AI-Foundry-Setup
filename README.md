@@ -2,27 +2,37 @@
 
 Terraform to provision a **public-facing Azure AI Foundry** account with
 **Customer-Managed Keys** (CMK) in Key Vault, and a config-driven deployment
-of an Anthropic model (default: **Claude Opus 4.7**, fallback **Opus 4.6**) via
-Azure AI Foundry's Models-as-a-Service catalog.
+of an OpenAI model (default: **gpt-5.4**) via the AI Foundry account.
 
 The Terraform `opencode_env` output emits a paste-ready shell snippet that
-configures **[OpenCode](https://github.com/sst/opencode)** (or any Anthropic
-SDK client) to talk to the deployed model:
+configures the Azure OpenAI SDK or any compatible client:
 
 ```bash
 terraform output -raw opencode_env
-# export ANTHROPIC_API_KEY=...
-# export ANTHROPIC_BASE_URL=https://<account>.services.ai.azure.com/anthropic
-# export ANTHROPIC_MODEL=claude-opus-4-7
+# export AZURE_OPENAI_API_KEY=...
+# export AZURE_OPENAI_ENDPOINT=https://<account>.cognitiveservices.azure.com/openai
+# export AZURE_OPENAI_DEPLOYMENT=gpt-5-4
+# export OPENAI_API_VERSION=2024-10-21
+# export AZURE_FOUNDRY_PROJECT_ENDPOINT=https://<account>.cognitiveservices.azure.com/api/projects/default
 ```
+
+## Known limitation: model deployments on CMK accounts
+
+Azure blocks model deployments (HTTP 400, error `715-123420`) on
+**CMK-encrypted AIServices accounts** in **swedencentral**. This affects all
+models and both the ARM API and the Azure CLI. A support ticket has been filed.
+
+As a result the `var.deployments` default is kept at `gpt-5.4` in the config,
+but a `terraform apply` will fail at the model-deployment step until Microsoft
+resolves the restriction. The rest of the stack (Key Vault, managed identity,
+AI Foundry account, project, role assignments) deploys cleanly.
 
 ## What CMK does (and doesn't) buy you here
 
 The CMK setup encrypts the **AIServices account's metadata** under a key
-*you* hold in Key Vault. Inference traffic to Anthropic-hosted MaaS models is
-governed by Microsoft's and Anthropic's MaaS terms — it does **not** run inside
-your subscription. "Data in your control" in this repo means key-control over
-the Foundry resource, not end-to-end customer-isolated inference.
+*you* hold in Key Vault. Inference traffic runs through Azure's shared
+infrastructure — "data in your control" means key-control over the Foundry
+resource, not end-to-end customer-isolated inference.
 
 ## Architecture
 
@@ -36,45 +46,53 @@ terraform/
     ├── modules/keyvault          → KV (purge-protected, RBAC) + RSA 4096 key
     │                                + role assignment: UAMI gets
     │                                  "Key Vault Crypto Service Encryption User"
-    ├── modules/ai-foundry        → AIServices account (kind=AIServices) with
-    │                                CMK wiring + project (azapi)
-    └── modules/model-deployment  → One Anthropic MaaS deployment per entry in
-                                     var.deployments
+    ├── modules/ai-foundry        → AIServices account (kind=AIServices, CMK)
+    │                                + project (azapi)
+    └── modules/model-deployment  → One deployment per entry in var.deployments
+                                     (parent: the AI Foundry account)
 ```
 
 The root module uses module-level `depends_on = [module.keyvault]` on
 `module.ai_foundry` so the KV role assignment lands before the account tries
-to wrap with the key.
+to wrap its data key.
 
 ## Usage
+
+### Automated (recommended) — deploy scripts
+
+```powershell
+# Direct Terraform deploy (no Docker needed):
+.\deploy\scripts\deploy.ps1 -Action apply
+
+# Via GitHub Actions locally using act + Docker:
+.\deploy\scripts\deploy-with-docker.ps1 -Action apply
+```
+
+Both scripts handle `az login`, bootstrap, backend wiring, and role
+assignments automatically. Use `-SkipBootstrap` if the remote state storage
+account already exists.
+
+### Manual
 
 ```bash
 az login
 az account set --subscription <SUBSCRIPTION_ID>
 
-# 1) One-time bootstrap: create the remote state account.
+# 1) One-time bootstrap (local state).
 cd terraform/bootstrap
 terraform init
 terraform apply -var "subscription_id=<SUBSCRIPTION_ID>"
 
-# Copy the printed backend block into ../backend.tf.
-
 # 2) Main config.
 cd ..
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars: set subscription_id, tenant_id, and at least one
-# admin object ID in key_vault_admin_object_ids (your own user normally).
-
-terraform init
-terraform apply
-```
-
-When apply succeeds:
-
-```bash
-terraform output -raw opencode_env > .env.opencode
-source .env.opencode
-opencode    # or curl $ANTHROPIC_BASE_URL/v1/messages ...
+terraform init \
+  -backend-config="resource_group_name=<RG>" \
+  -backend-config="storage_account_name=<SA>" \
+  -backend-config="container_name=tfstate"
+terraform apply \
+  -var "subscription_id=<SUB>" \
+  -var "tenant_id=<TENANT>" \
+  -var 'key_vault_admin_object_ids=["<YOUR_OBJECT_ID>"]'
 ```
 
 ## GitHub Actions (cloud or local via `act`)
@@ -82,13 +100,7 @@ opencode    # or curl $ANTHROPIC_BASE_URL/v1/messages ...
 Two manual workflows live in `.github/workflows/`:
 
 - `bootstrap.yml` — runs the one-time bootstrap, emits the backend config.
-- `deploy.yml` — `plan` / `apply` / `destroy` against the main config; backend
-  wired via `-backend-config` flags so `backend.tf` stays untouched.
-
-Both are designed to run identically in GitHub and locally with
-[`act`](https://github.com/nektos/act). See
-[`.github/workflows/README.md`](.github/workflows/README.md) for SP setup
-and the exact `act` invocations.
+- `deploy.yml` — `plan` / `apply` / `destroy` against the main config.
 
 ```bash
 cp .secrets.example .secrets   # fill in ARM_CLIENT_ID / SECRET / TENANT_ID
@@ -98,77 +110,55 @@ act workflow_dispatch -W .github/workflows/bootstrap.yml \
 
 ## Choosing a different model
 
-Models are listed in `var.model_catalog` (see `variables.tf`). To deploy a
-different model, edit `var.deployments` in `terraform.tfvars`:
+Models are listed in `var.model_catalog` (`terraform/variables.tf`). To deploy
+a different model, override `var.deployments`:
 
 ```hcl
+# terraform.tfvars
 deployments = [
-  { model_key = "claude-sonnet-4-6", deployment_name = "sonnet", capacity = 1 },
+  { model_key = "gpt-4o", deployment_name = "gpt-4o", capacity = 1 },
 ]
 ```
 
-To deploy more than one, add more entries — the **first** entry's endpoint
-flows into `opencode_env`.
+The **first** entry's endpoint flows into `opencode_env`. Add more entries to
+deploy multiple models simultaneously.
 
-If a model isn't in the catalog yet, add it to `var.model_catalog` (see the
-`TODO(verify)` comments — the exact publisher/offer/sku strings come from the
-Azure portal Model Catalog or `az rest` against
-`Microsoft.CognitiveServices/locations/<region>/models`).
+## Default region
 
-## Verification TODOs
-
-The provider surface for AI Foundry (AIServices-account shape) and Anthropic
-MaaS deployments is still evolving. Six items in the code are marked
-`TODO(verify)`; resolve them on first `terraform plan`:
-
-1. AzureRM version that ships a first-class `azurerm_ai_services_project` —
-   prefer it over `azapi_resource` if available.
-2. Latest `azapi` API version for `Microsoft.CognitiveServices/accounts/projects`
-   and `.../deployments`.
-3. Whether a separate `Microsoft.SaaS/resources` marketplace subscription is
-   still needed for Anthropic offers (commented-out fallback exists in
-   `modules/model-deployment/main.tf`).
-4. Whether **Claude Opus 4.7** is live on Azure AI Foundry MaaS in your region.
-   If not, swap the default in `terraform.tfvars` to `claude-opus-4-6`.
-5. Endpoint URL shape returned by the deployment — the module assumes
-   `<account>.services.ai.azure.com/anthropic`; verify after first apply.
-6. Exact field names on the deployment body
-   (`properties.model.{format,name,version}` vs publisher/offer/sku at top).
+`swedencentral` — set via `var.location` (default in `terraform/variables.tf`).
 
 ## Layout
 
 ```
+deploy/
+  scripts/
+    deploy.ps1               Direct Terraform deploy (az CLI auth, no Docker)
+    deploy-with-docker.ps1   GitHub Actions emulation via act + Docker
+
 terraform/
-  bootstrap/              one-time TF for the remote state account (local state)
+  bootstrap/                 One-time TF for the remote state account
   modules/
-    identity/             UAMI
-    keyvault/             KV + RSA key + CMK role assignment
-    ai-foundry/           AIServices account + project
-    model-deployment/     MaaS deployment under the account
-  versions.tf             Provider pins
-  providers.tf            Provider config
-  backend.tf              azurerm backend (populate from bootstrap output)
-  variables.tf            Inputs + model_catalog
-  locals.tf               Naming + assertions
-  main.tf                 Composes modules
-  outputs.tf              Including opencode_env
-  terraform.tfvars.example
+    identity/                UAMI
+    keyvault/                KV + RSA key + CMK role assignment
+    ai-foundry/              AIServices account + project
+    model-deployment/        Model deployment under the AI Foundry account
+    role-assignments/        Reusable role assignment block
+  versions.tf
+  providers.tf
+  backend.tf
+  variables.tf               Inputs + model_catalog
+  locals.tf                  Resource naming
+  main.tf                    Composes modules
+  outputs.tf                 Including opencode_env
 
 .github/workflows/
-  bootstrap.yml           Manual: provision remote state
-  deploy.yml              Manual: plan / apply / destroy
-  README.md               SP setup + `act` invocations
+  bootstrap.yml              Manual: provision remote state
+  deploy.yml                 Manual: plan / apply / destroy
 
-.secrets.example          Template for ARM_CLIENT_ID/SECRET/TENANT_ID (act)
-.actrc                    Default flags for local `act` runs
+.secrets.example             Template for ARM_CLIENT_ID/SECRET/TENANT_ID
 ```
-
-## Running Act locally
-  act workflow_dispatch -W .github/workflows/bootstrap.yml -P ubuntu-latest=-self-hosted `
-    --secret-file .secrets --input subscription_id=<SUB>
 
 ## Out of scope
 
 Private endpoints, VNet integration, AI Search / Cosmos / compute clusters,
-CI/CD, Azure Policy, monitoring beyond what CMK requires, multi-region,
-multi-subscription. Each is a future module if needed.
+CI/CD, Azure Policy, monitoring, multi-region, multi-subscription.

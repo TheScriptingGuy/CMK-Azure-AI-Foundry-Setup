@@ -94,12 +94,3 @@ jobs:
             echo "container_name=$(terraform output -raw container_name)"
           } > backend_config.env
 
-      - name: Upload backend config
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-config
-          path: |
-            terraform/bootstrap/backend_config.hcl
-            terraform/bootstrap/backend_config.env
-          if-no-files-found: error
-          retention-days: 30

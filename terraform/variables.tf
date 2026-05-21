@@ -9,7 +9,7 @@ variable "tenant_id" {
 }
 
 variable "location" {
-  description = "Azure region. Anthropic MaaS availability is limited; eastus2 and swedencentral are the safest bets."
+  description = "Azure region. Anthropic MaaS availability is limited; swedencentral is the primary target."
   type        = string
   default     = "swedencentral"
 }
@@ -69,6 +69,14 @@ variable "model_catalog" {
       model_version = "2024-11-20"
       model_format  = "OpenAI"
     }
+    "gpt-5.4" = {
+      publisher     = "Microsoft"
+      offer         = "gpt-5.4"
+      sku           = "GlobalStandard"
+      model_name    = "gpt-5.4"
+      model_version = "2026-03-05"
+      model_format  = "OpenAI"
+    }
     "gpt-5.5" = {
       publisher     = "Microsoft"
       offer         = "gpt-5.5"
@@ -118,8 +126,8 @@ EOT
   }))
   default = [
     {
-      model_key       = "gpt-4o"
-      deployment_name = "gpt-4o"
+      model_key       = "gpt-5.4"
+      deployment_name = "gpt-5-4"
       capacity        = 1
     }
   ]
